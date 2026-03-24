@@ -401,16 +401,8 @@ class MainMenuScene extends Phaser.Scene {
     
     applyTheme(this, this.profile.currentTheme);
 
-    // Secret code tracker
-    this.secretCode = '';
-    this.secretCodeText = this.add.text(10, CONSTANTS.HEIGHT - 20, 'Secret: _____', {
-      fontSize: '10px',
-      fill: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0);
-
     // Title with glow effect
-    this.add.text(CONSTANTS.CENTER_X, 50, 'IDK GAME', {
+    this.add.text(CONSTANTS.CENTER_X, 50, 'THE BIG GAME OF GAMES', {
       fontSize: '56px',
       fill: '#ffffff',
       fontStyle: 'bold',
@@ -424,6 +416,9 @@ class MainMenuScene extends Phaser.Scene {
       fontStyle: 'italic',
       fontFamily: 'Arial'
     }).setOrigin(0.5).setAlpha(0.85).setShadow(0, 0, '#0064ff', 3, true, true);
+
+    // Add animated mints
+    this.createAnimatedMints();
 
     // Play button
     const playBtn = this.createButton(CONSTANTS.CENTER_X, 220, 'PLAY', 140, 45);
@@ -462,31 +457,145 @@ class MainMenuScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Setup keyboard for secret code
-    this.input.keyboard.on('keydown', (event) => {
-      const key = event.key.toLowerCase();
-      if (/^[a-z]$/.test(key)) {
-        this.secretCode += key;
-        if (this.secretCode.length > 5) {
-          this.secretCode = this.secretCode.slice(-5);
-        }
-        this.updateSecretDisplay();
-        
-        if (this.secretCode === 'rhys') {
-          this.activatePlatformer();
-          this.secretCode = '';
-        }
+    // Store buttons for keyboard navigation
+    this.buttons = [playBtn, statsBtn, settingsBtn];
+    this.selectedButtonIndex = 0;
+
+    // Keyboard input
+    this.input.keyboard.on('keydown-UP', () => {
+      this.selectedButtonIndex = (this.selectedButtonIndex - 1 + this.buttons.length) % this.buttons.length;
+      this.updateButtonSelection();
+    });
+
+    this.input.keyboard.on('keydown-DOWN', () => {
+      this.selectedButtonIndex = (this.selectedButtonIndex + 1) % this.buttons.length;
+      this.updateButtonSelection();
+    });
+
+    this.input.keyboard.on('keydown-SPACE', () => {
+      this.activateSelectedButton();
+    });
+
+    this.input.keyboard.on('keydown-ENTER', () => {
+      this.activateSelectedButton();
+    });
+
+    // Initial button selection
+    this.updateButtonSelection();
+  }
+
+  updateButtonSelection() {
+    // Reset all buttons to normal state
+    this.buttons.forEach((btn, index) => {
+      if (index === this.selectedButtonIndex) {
+        // Highlight selected button
+        btn.setScale(1.1);
+        btn.setAlpha(1);
+      } else {
+        // Normal state for unselected buttons
+        btn.setScale(1);
+        btn.setAlpha(0.85);
       }
     });
   }
 
-  updateSecretDisplay() {
-    const display = this.secretCode.padEnd(5, '_');
-    this.secretCodeText.setText(`Secret: ${display}`);
+  activateSelectedButton() {
+    const selectedButton = this.buttons[this.selectedButtonIndex];
+    
+    // Trigger the button's action based on which one is selected
+    if (selectedButton === this.buttons[0]) {
+      this.scene.start('ModeSelectScene');
+    } else if (selectedButton === this.buttons[1]) {
+      this.scene.start('StatsScene');
+    } else if (selectedButton === this.buttons[2]) {
+      this.scene.start('SettingsScene');
+    }
   }
 
-  activatePlatformer() {
-    this.scene.start('PlatformerScene');
+  createAnimatedMints() {
+    this.mints = [];
+    
+    // Create multiple animated mints
+    for (let i = 0; i < 8; i++) {
+      const mint = this.add.circle(
+        Math.random() * CONSTANTS.WIDTH,
+        Math.random() * CONSTANTS.HEIGHT,
+        8 + Math.random() * 12,
+        0x00ff88
+      );
+      
+      mint.setAlpha(0.3 + Math.random() * 0.4);
+      mint.setBlendMode(Phaser.BlendModes.ADD);
+      
+      // Store mint data
+      this.mints.push({
+        sprite: mint,
+        x: mint.x,
+        y: mint.y,
+        speedX: (Math.random() - 0.5) * 2,
+        speedY: (Math.random() - 0.5) * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.1,
+        scale: 1,
+        scaleDirection: 1,
+        hue: 120 + Math.random() * 60 // Green to cyan range
+      });
+      
+      // Animate the mint
+      this.animateMint(this.mints[i]);
+    }
+  }
+
+  animateMint(mint) {
+    // Movement animation
+    this.tweens.add({
+      targets: mint.sprite,
+      x: {
+        value: mint.x + mint.speedX * 100,
+        duration: 3000 + Math.random() * 2000,
+        ease: 'Sine.easeInOut'
+      },
+      y: {
+        value: mint.y + mint.speedY * 100,
+        duration: 3000 + Math.random() * 2000,
+        ease: 'Sine.easeInOut'
+      },
+      onComplete: () => {
+        // Reset position and continue animation
+        mint.sprite.x = mint.x;
+        mint.sprite.y = mint.y;
+        this.animateMint(mint);
+      }
+    });
+
+    // Rotation animation
+    this.tweens.add({
+      targets: mint.sprite,
+      rotation: Math.PI * 2,
+      duration: 4000 + Math.random() * 4000,
+      repeat: -1,
+      ease: 'Linear'
+    });
+
+    // Pulsing scale animation
+    this.tweens.add({
+      targets: mint.sprite,
+      scaleX: 1.3,
+      scaleY: 1.3,
+      duration: 1500 + Math.random() * 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Alpha pulsing
+    this.tweens.add({
+      targets: mint.sprite,
+      alpha: 0.1,
+      duration: 2000 + Math.random() * 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
   }
 
   createButton(x, y, text, width, height) {
@@ -620,122 +729,6 @@ class ModeSelectScene extends Phaser.Scene {
           duration: 150
         });
       });
-    });
-
-    // Game Mode Packs Section
-    this.add.text(CONSTANTS.CENTER_X, 420, 'GAME MODE PACKS', {
-      fontSize: '16px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Featured Game Mode
-    this.add.text(CONSTANTS.CENTER_X, 410, 'FEATURED', {
-      fontSize: '14px',
-      fill: '#00ff00',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    const featuredBtn = this.add.rectangle(CONSTANTS.CENTER_X, 437, 380, 45, 0x006600);
-    featuredBtn.setAlpha(0.8);
-    featuredBtn.setInteractive();
-    featuredBtn.setStrokeStyle(3, 0x00ff00);
-
-    this.add.text(CONSTANTS.CENTER_X - 170, 427, 'GRAVITY COLLAPSE: SOLO', {
-      fontSize: '14px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0);
-
-    this.add.text(CONSTANTS.CENTER_X - 170, 447, 'Physics-based survival action. Last survivor on a collapsing space city.', {
-      fontSize: '10px',
-      fill: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0);
-
-    featuredBtn.on('pointerover', () => {
-      this.tweens.add({
-        targets: featuredBtn,
-        alpha: 1,
-        scale: 1.05,
-        duration: 150
-      });
-    });
-
-    featuredBtn.on('pointerout', () => {
-      this.tweens.add({
-        targets: featuredBtn,
-        alpha: 0.8,
-        scale: 1,
-        duration: 150
-      });
-    });
-
-    featuredBtn.on('pointerdown', () => {
-      alert('GRAVITY COLLAPSE: SOLO\n\nCore Features:\n- Dynamic gravity engine (5 gravity states)\n- Combat with Energy Rifle & Gravity Pulse\n- Progressive upgrades & skill tree\n- Floating city environments\n- Boss fight at gravity core\n- Roguelike mode with permadeath\n- Time attack leaderboard\n\nMission: Reach the central Gravity Core and stabilize it before the city is torn apart!\n\nComing soon...');
-    });
-
-    // Regular Game Mode Packs Section
-    this.add.text(CONSTANTS.CENTER_X, 495, 'GAME MODE PACKS', {
-      fontSize: '16px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    const gameModes = [
-      { name: 'Sci-Fi Shooter', desc: 'Gravity, Core, Hunter', color: 0x0064ff },
-      { name: 'Survival Horror', desc: 'Echoes, Sanity, Mimic', color: 0x00ff00 },
-      { name: 'Fantasy RPG', desc: 'Siege, Dungeon, Relics', color: 0x0064ff },
-      { name: 'Arcade Chaos', desc: 'Lava, Tag, Size, Hole', color: 0x00ff00 }
-    ];
-
-    let modeY = 525;
-    gameModes.forEach((mode, index) => {
-      const modeBtn = this.add.rectangle(CONSTANTS.CENTER_X, modeY, 320, 30, mode.color);
-      modeBtn.setAlpha(0.7);
-      modeBtn.setInteractive();
-      modeBtn.setStrokeStyle(2, 0x00ff00);
-
-      this.add.text(CONSTANTS.CENTER_X - 140, modeY - 6, mode.name, {
-        fontSize: '12px',
-        fill: '#000000',
-        fontStyle: 'bold',
-        fontFamily: 'Arial'
-      }).setOrigin(0);
-
-      this.add.text(CONSTANTS.CENTER_X - 140, modeY + 5, mode.desc, {
-        fontSize: '10px',
-        fill: '#000000',
-        fontFamily: 'Arial'
-      }).setOrigin(0);
-
-      modeBtn.on('pointerover', () => {
-        this.tweens.add({
-          targets: modeBtn,
-          alpha: 1,
-          scale: 1.05,
-          duration: 150
-        });
-      });
-
-      modeBtn.on('pointerout', () => {
-        this.tweens.add({
-          targets: modeBtn,
-          alpha: 0.7,
-          scale: 1,
-          duration: 150
-        });
-      });
-
-      modeBtn.on('pointerdown', () => {
-        console.log('Selected mode pack: ' + mode.name);
-      });
-
-      modeY += 35;
     });
 
     // Back button
@@ -1668,7 +1661,7 @@ class SettingsScene extends Phaser.Scene {
 
         const label = this.add.text(themeX, y + 45, key.substring(0, 4), {
           fontSize: '10px',
-          fill: '#000000'
+          fill: '#ffffff'
         }).setOrigin(0.5);
 
         btn.on('pointerdown', () => {
@@ -1796,919 +1789,6 @@ class SettingsScene extends Phaser.Scene {
 }
 
 // ============================================================================
-// SCENE: PLATFORMER (SECRET MODE)
-// ============================================================================
-
-class PlatformerScene extends Phaser.Scene {
-  constructor() {
-    super('PlatformerScene');
-  }
-
-  create() {
-    this.profile = this.registry.get('profile');
-    
-    // Initialize upgrades if not exists
-    if (!this.profile.platformerUpgrades) {
-      this.profile.platformerUpgrades = {
-        jumpBoost: 0,
-        speedBoost: 0,
-        shieldBoost: 0
-      };
-      this.profile.platformerCoins = 0;
-    }
-    
-    // Game state
-    this.gameData = {
-      score: 0,
-      lives: 5,
-      level: 1,
-      maxLevel: 30,
-      gameOver: false,
-      won: false,
-      completedAllLevels: false,
-      coins: 0,
-      upgrades: this.profile.platformerUpgrades,
-      totalCoins: this.profile.platformerCoins
-    };
-
-    // Background gradient effect
-    this.add.rectangle(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y, CONSTANTS.WIDTH, CONSTANTS.HEIGHT, 0x1a3a52);
-    this.add.rectangle(CONSTANTS.CENTER_X, 0, CONSTANTS.WIDTH, CONSTANTS.HEIGHT / 2, 0x2a5a82).setAlpha(0.3);
-    
-    // Title
-    this.add.text(CONSTANTS.CENTER_X, 20, "🎮 RHYS' PLATFORMER ADVENTURE 🎮", {
-      fontSize: '20px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setStroke('#aa8800', 2);
-
-    // UI
-    this.scoreText = this.add.text(20, 50, `Coins: ${this.gameData.coins}`, {
-      fontSize: '18px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    });
-
-    this.livesText = this.add.text(CONSTANTS.WIDTH - 20, 50, `❤️ ${this.gameData.lives}`, {
-      fontSize: '18px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(1, 0);
-
-    this.levelText = this.add.text(CONSTANTS.CENTER_X, 50, `LEVEL ${this.gameData.level}`, {
-      fontSize: '16px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Graphics layer for game objects
-    this.gameGraphics = this.make.graphics({ x: 0, y: 0, add: true });
-
-    this.setupInput();
-    this.createLevel();
-    
-    // Initialize player on first platform AFTER level is created
-    this.initializePlayer();
-    
-    // Display upgrade UI
-    this.displayUpgradeStatus();
-  }
-
-  initializePlayer() {
-    const jumpBonus = this.gameData.upgrades.jumpBoost * 0.5;
-    const speedBonus = this.gameData.upgrades.speedBoost * 0.2;
-    
-    // Spawn on first platform (platforms[1], since [0] is ground)
-    const spawnPlatform = this.platforms[1] || this.platforms[0];
-    
-    this.player = {
-      x: spawnPlatform.x + spawnPlatform.width / 2 - 11,
-      y: spawnPlatform.y - 28,
-      width: 22,
-      height: 28,
-      velocityY: 0,
-      velocityX: 0,
-      isJumping: false,
-      speed: 5 + speedBonus,
-      maxSpeed: 5 + speedBonus,
-      jumpPower: 10 + jumpBonus,
-      jumpTimeCounter: 0,
-      canJump: true,
-      doubleJumpReady: false,
-      doubleJumpUsed: false,
-      invincible: false,
-      invincibleTime: 0,
-      coyoteCounter: 0,
-      maxCoyote: 6
-    };
-  }
-
-  setupInput() {
-    const keys = this.input.keyboard.addKeys({
-      a: Phaser.Input.Keyboard.KeyCodes.A,
-      d: Phaser.Input.Keyboard.KeyCodes.D,
-      space: Phaser.Input.Keyboard.KeyCodes.SPACE,
-      esc: Phaser.Input.Keyboard.KeyCodes.ESC,
-      w: Phaser.Input.Keyboard.KeyCodes.W,
-      left: Phaser.Input.Keyboard.KeyCodes.LEFT,
-      right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
-      up: Phaser.Input.Keyboard.KeyCodes.UP,
-      u: Phaser.Input.Keyboard.KeyCodes.U
-    });
-
-    this.keys = keys;
-  }
-
-  displayUpgradeStatus() {
-    const upgradeText = `⬆️ Jump+${this.gameData.upgrades.jumpBoost} ⚡ Speed+${this.gameData.upgrades.speedBoost} 🛡️ Shield+${this.gameData.upgrades.shieldBoost} | 💰 ${this.gameData.totalCoins}`;
-    if (this.upgradeText) this.upgradeText.destroy();
-    this.upgradeText = this.add.text(CONSTANTS.CENTER_X, CONSTANTS.HEIGHT - 20, upgradeText, {
-      fontSize: '12px',
-      fill: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setAlpha(0.8);
-  }
-
-  createLevel() {
-    this.generateRandomLevel(this.gameData.level);
-  }
-
-  generateRandomLevel(levelNum) {
-    // Difficulty increases with level (1-30)
-    const difficulty = Math.min(1 + (levelNum - 1) * 0.1, 3);
-    
-    // Generate platforms - fewer/higher platforms = harder
-    this.platforms = [];
-    
-    // Ground platform (always there)
-    this.platforms.push({ x: 400, y: CONSTANTS.HEIGHT - 20, width: 800, height: 40, moving: false, color: 0x00cc00 });
-    
-    // Generate 5-8 platforms with increasing height/difficulty
-    const platformCount = Math.floor(5 + difficulty * 2);
-    let currentHeight = CONSTANTS.HEIGHT - 100;
-    let currentX = 100;
-    
-    for (let i = 0; i < platformCount; i++) {
-      const platformWidth = Math.max(90, 160 - difficulty * 15);
-      const gapSize = Math.min(100 + difficulty * 30, 180);
-      
-      // Random x position but ensure it's reachable
-      currentX = Math.random() > 0.5 ? currentX + gapSize : currentX - gapSize * 0.5;
-      currentX = Math.max(50, Math.min(currentX, CONSTANTS.WIDTH - 100));
-      
-      currentHeight -= (40 + difficulty * 20);
-      
-      if (currentHeight > 100) {
-        const platformColor = i < platformCount - 2 ? 0x00cc00 : (i === platformCount - 1 ? 0xffaa00 : 0x00aa00);
-        this.platforms.push({
-          x: currentX,
-          y: currentHeight,
-          width: platformWidth,
-          height: 20,
-          moving: false,
-          color: platformColor
-        });
-      }
-    }
-    
-    // Random enemies (0-2, more on harder levels)
-    this.enemies = [];
-    const enemyCount = Math.floor(difficulty * 2);
-    for (let i = 0; i < enemyCount && i < 2; i++) {
-      const enemyY = CONSTANTS.HEIGHT - 150 - (i * 150);
-      this.enemies.push({
-        x: 200 + i * 300,
-        y: enemyY,
-        width: 18,
-        height: 18,
-        speed: 0.8 + difficulty * 0.5,
-        minX: 100 + i * 200,
-        maxX: 300 + i * 250,
-        direction: 1,
-        type: 'enemy',
-        color: 0xff3333
-      });
-    }
-    
-    // Random power-ups (1-2)
-    this.powerups = [];
-    const powerupCount = Math.floor(1 + difficulty * 0.8);
-    const powerupTypes = ['doubleJump', 'shield', 'extraJump'];
-    for (let i = 0; i < powerupCount; i++) {
-      this.powerups.push({
-        x: 150 + Math.random() * 500,
-        y: CONSTANTS.HEIGHT - 200 - Math.random() * 300,
-        type: powerupTypes[Math.floor(Math.random() * powerupTypes.length)],
-        collected: false,
-        color: [0x00ff00, 0x0099ff, 0x0064ff][Math.floor(Math.random() * 3)],
-        active: false
-      });
-    }
-    
-    // Random coins (3-8)
-    this.coins = [];
-    const coinCount = Math.floor(3 + difficulty * 3);
-    for (let i = 0; i < coinCount; i++) {
-      this.coins.push({
-        x: 100 + Math.random() * 600,
-        y: CONSTANTS.HEIGHT - 100 - Math.random() * 400,
-        collected: false
-      });
-    }
-    
-    // Goal on the highest platform
-    const highestPlatform = this.platforms[this.platforms.length - 1];
-    this.goal = { 
-      x: highestPlatform.x + highestPlatform.width / 2 - 20,
-      y: highestPlatform.y - 60,
-      width: 40,
-      height: 60
-    };
-  }
-
-  update() {
-    if (this.gameData.gameOver || this.gameData.won) return;
-
-    // Handle input with better controls
-    let hasMovementInput = false;
-    if (this.keys.a.isDown || this.keys.left.isDown) {
-      this.player.velocityX = Math.max(this.player.velocityX - 0.35, -this.player.maxSpeed);
-      hasMovementInput = true;
-    } else if (this.keys.d.isDown || this.keys.right.isDown) {
-      this.player.velocityX = Math.min(this.player.velocityX + 0.35, this.player.maxSpeed);
-      hasMovementInput = true;
-    }
-
-    // Friction when not moving
-    if (!hasMovementInput) {
-      this.player.velocityX *= 0.84;
-    }
-
-    // Coyote time - can jump for a few frames after leaving platform
-    if (this.player.isJumping) {
-      this.player.coyoteCounter++;
-    } else {
-      this.player.coyoteCounter = 0;
-    }
-
-    // Jump with variable height and coyote time
-    if ((this.keys.space.isDown || this.keys.up.isDown || this.keys.w.isDown) && (this.player.coyoteCounter <= this.player.maxCoyote || this.player.doubleJumpReady)) {
-      if (this.player.coyoteCounter <= this.player.maxCoyote && !this.player.isJumping) {
-        // First jump (normal)
-        this.player.velocityY = -this.player.jumpPower;
-        this.player.isJumping = true;
-        this.player.jumpTimeCounter = 10;
-      } else if (this.player.doubleJumpReady && !this.player.doubleJumpUsed && this.player.isJumping) {
-        // Double jump
-        this.player.velocityY = -this.player.jumpPower;
-        this.player.doubleJumpUsed = true;
-        this.player.jumpTimeCounter = 10;
-      }
-    }
-
-    // Extended jump via held space
-    if ((this.keys.space.isDown || this.keys.up.isDown || this.keys.w.isDown) && this.player.isJumping && this.player.jumpTimeCounter > 0) {
-      this.player.velocityY = Math.max(this.player.velocityY, -this.player.jumpPower);
-      this.player.jumpTimeCounter--;
-    }
-
-    if (this.keys.esc.isDown) {
-      if (this.gameData.gameOver || this.gameData.won) {
-        this.scene.start('MainMenuScene');
-      }
-    }
-
-    // Apply gravity (slightly reduced)
-    this.player.velocityY += 0.42;
-    this.player.velocityY = Math.min(this.player.velocityY, 13);
-
-    this.player.y += this.player.velocityY;
-    this.player.x += this.player.velocityX;
-
-    // Boundary check with wrapping
-    if (this.player.x < -20) this.player.x = CONSTANTS.WIDTH + 20;
-    if (this.player.x > CONSTANTS.WIDTH + 20) this.player.x = -20;
-
-    // Check platform collisions
-    let wasOnGround = !this.player.isJumping;
-    this.player.isJumping = true;
-    this.platforms.forEach(platform => {
-      if (this.checkCollision(this.player, platform)) {
-        if (this.player.velocityY > 0.5) {
-          this.player.y = platform.y - this.player.height;
-          this.player.velocityY = 0;
-          this.player.isJumping = false;
-          this.player.coyoteCounter = 0;
-          if (this.player.doubleJumpReady) {
-            this.player.doubleJumpUsed = false;
-          }
-        }
-      }
-    });
-
-    // Check enemy collisions (lose life if not invincible)
-    this.enemies.forEach(enemy => {
-      if (this.checkCollision(this.player, enemy)) {
-        if (this.player.invincible) {
-          this.player.invincible = false;
-          this.player.invincibleTime = 0;
-        } else {
-          this.loseLife();
-        }
-      }
-    });
-
-    // Update invincibility
-    if (this.player.invincible) {
-      this.player.invincibleTime--;
-      if (this.player.invincibleTime <= 0) {
-        this.player.invincible = false;
-      }
-    }
-
-    // Update enemies
-    this.enemies.forEach(enemy => {
-      enemy.x += enemy.speed * enemy.direction;
-      if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
-        enemy.direction *= -1;
-      }
-    });
-
-    // Check powerup collisions
-    this.powerups.forEach(powerup => {
-      if (!powerup.collected && this.checkCollisionPoint(powerup, this.player)) {
-        powerup.collected = true;
-        this.activatePowerup(powerup.type);
-      }
-    });
-
-    // Check coin collisions
-    this.coins.forEach(coin => {
-      if (!coin.collected && this.checkCollisionPoint(coin, this.player)) {
-        coin.collected = true;
-        this.gameData.coins++;
-        this.gameData.totalCoins++;
-        this.gameData.score += 5;
-        this.scoreText.setText(`Coins: ${this.gameData.coins} 💰`);
-        this.displayUpgradeStatus();
-        // Show coin pickup feedback
-        this.add.text(coin.x, coin.y - 20, '+1💰', {
-          fontSize: '14px',
-          fill: '#ffff00',
-          fontFamily: 'Arial',
-          fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100);
-      }
-    });
-
-    // Press U for upgrades menu (purchase upgrades with coins)
-    if (this.keys.u.isDown && !this.showingUpgrades) {
-      this.showUpgradesMenu();
-      this.showingUpgrades = true;
-    }
-    if (!this.keys.u.isDown) {
-      this.showingUpgrades = false;
-    }
-
-    // Check goal collision (win)
-    if (this.checkCollision(this.player, this.goal)) {
-      if (this.gameData.level >= this.gameData.maxLevel) {
-        // All 30 levels completed!
-        this.gameData.completedAllLevels = true;
-        this.gameData.won = true;
-        this.showFinalVictory();
-      } else {
-        // Move to next level
-        this.gameData.level++;
-        this.gameData.score += 100;
-        this.nextLevel();
-      }
-    }
-
-    // Fall off platform - lose a life
-    if (this.player.y > CONSTANTS.HEIGHT + 50) {
-      this.loseLife();
-    }
-
-    // Render everything
-    this.renderAll();
-  }
-
-  activatePowerup(type) {
-    switch (type) {
-      case 'doubleJump':
-        this.player.doubleJumpReady = true;
-        this.player.doubleJumpUsed = false;
-        this.add.text(CONSTANTS.CENTER_X, 100, '✨ DOUBLE JUMP ACTIVATED!', {
-          fontSize: '24px',
-          fill: '#00ff00',
-          fontStyle: 'bold',
-          fontFamily: 'Arial',
-          backgroundColor: '#000000',
-          padding: { x: 10, y: 5 }
-        }).setOrigin(0.5).setDepth(100).setAlpha(0.9);
-        this.time.delayedCall(30, () => this.add.tween({ targets: [this.children.list[this.children.list.length - 1]], alpha: 0, duration: 1000 }));
-        break;
-      case 'extraJump':
-        this.player.jumpPower += 2;
-        this.add.text(CONSTANTS.CENTER_X, 100, '⬆️ JUMP BOOST!', {
-          fontSize: '24px',
-          fill: '#00ff88',
-          fontStyle: 'bold',
-          fontFamily: 'Arial',
-          backgroundColor: '#000000',
-          padding: { x: 10, y: 5 }
-        }).setOrigin(0.5).setDepth(100).setAlpha(0.9);
-        this.time.delayedCall(7000, () => {
-          this.player.jumpPower = 13.5;
-        });
-        break;
-      case 'shield':
-        this.player.invincible = true;
-        this.player.invincibleTime = 300;
-        this.add.text(CONSTANTS.CENTER_X, 100, '🛡️ SHIELD ACTIVATED!', {
-          fontSize: '24px',
-          fill: '#0099ff',
-          fontStyle: 'bold',
-          fontFamily: 'Arial',
-          backgroundColor: '#000000',
-          padding: { x: 10, y: 5 }
-        }).setOrigin(0.5).setDepth(100).setAlpha(0.9);
-        break;
-      case 'speed':
-        this.player.maxSpeed = 7;
-        this.add.text(CONSTANTS.CENTER_X, 100, '⚡ SPEED BOOST!', {
-          fontSize: '24px',
-          fill: '#ff6600',
-          fontStyle: 'bold',
-          fontFamily: 'Arial',
-          backgroundColor: '#000000',
-          padding: { x: 10, y: 5 }
-        }).setOrigin(0.5).setDepth(100).setAlpha(0.9);
-        this.time.delayedCall(5000, () => {
-          this.player.maxSpeed = 5;
-        });
-        break;
-    }
-    this.gameData.score += 50;
-  }
-
-  loseLife() {
-    this.gameData.lives--;
-    this.livesText.setText(`❤️ ${this.gameData.lives}`);
-    if (this.gameData.lives <= 0) {
-      this.gameData.gameOver = true;
-      this.showGameOver();
-    } else {
-      // Respawn on first platform
-      const spawnPlatform = this.platforms[1] || this.platforms[0];
-      this.player.x = spawnPlatform.x + spawnPlatform.width / 2 - 11;
-      this.player.y = spawnPlatform.y - 28;
-      this.player.velocityY = 0;
-      this.player.velocityX = 0;
-      this.player.invincible = true;
-      this.player.invincibleTime = 120;
-    }
-  }
-
-  checkCollision(obj1, obj2) {
-    return !(
-      obj1.x + obj1.width < obj2.x ||
-      obj1.x > obj2.x + obj2.width ||
-      obj1.y + obj1.height < obj2.y ||
-      obj1.y > obj2.y + obj2.height
-    );
-  }
-
-  checkCollisionPoint(point, rect) {
-    return !(
-      point.x + 8 < rect.x ||
-      point.x - 8 > rect.x + rect.width ||
-      point.y + 8 < rect.y ||
-      point.y - 8 > rect.y + rect.height
-    );
-  }
-
-  renderAll() {
-    this.gameGraphics.clear();
-
-    // Draw platforms with better styling
-    this.platforms.forEach(platform => {
-      // Platform gradient effect
-      this.gameGraphics.fillStyle(platform.color || 0x00cc00, 1);
-      this.gameGraphics.fillRect(platform.x, platform.y, platform.width, platform.height);
-      
-      // Border
-      this.gameGraphics.lineStyle(2, 0x00ff00, 1);
-      this.gameGraphics.strokeRect(platform.x, platform.y, platform.width, platform.height);
-      
-      // Shine effect on top
-      this.gameGraphics.lineStyle(1, 0xffffff, 0.4);
-      this.gameGraphics.beginPath();
-      this.gameGraphics.moveTo(platform.x, platform.y + 2);
-      this.gameGraphics.lineTo(platform.x + platform.width, platform.y + 2);
-      this.gameGraphics.strokePath();
-    });
-
-    // Draw enemies with better visuals
-    this.enemies.forEach(enemy => {
-      // Enemy body
-      this.gameGraphics.fillStyle(0xff3333, 1);
-      this.gameGraphics.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-      
-      // Enemy border
-      this.gameGraphics.lineStyle(2, 0xff6666, 1);
-      this.gameGraphics.strokeRect(enemy.x, enemy.y, enemy.width, enemy.height);
-      
-      // Enemy eyes
-      this.gameGraphics.fillStyle(0xffffff, 1);
-      this.gameGraphics.fillRect(enemy.x + 2, enemy.y + 2, 4, 4);
-      this.gameGraphics.fillRect(enemy.x + 12, enemy.y + 2, 4, 4);
-    });
-
-    // Draw power-ups with improved pulsing
-    this.powerups.forEach(powerup => {
-      if (!powerup.collected) {
-        const pulse = Math.sin(this.time.now * 0.015) * 2 + 9;
-        const glowAlpha = Math.sin(this.time.now * 0.008) * 0.3 + 0.5;
-        
-        // Glow effect
-        this.gameGraphics.fillStyle(powerup.color, glowAlpha * 0.3);
-        this.gameGraphics.fillCircle(powerup.x, powerup.y, pulse + 4);
-        
-        // Main powerup
-        this.gameGraphics.fillStyle(powerup.color, 1);
-        this.gameGraphics.fillCircle(powerup.x, powerup.y, pulse);
-        
-        // Border
-        this.gameGraphics.lineStyle(2, 0xffffff, 1);
-        this.gameGraphics.strokeCircleShape(new Phaser.Geom.Circle(powerup.x, powerup.y, pulse));
-      }
-    });
-
-    // Draw coins with improved sparkle
-    this.coins.forEach(coin => {
-      if (!coin.collected) {
-        // Coin glow
-        const glowSize = Math.sin(this.time.now * 0.02) * 2 + 8;
-        this.gameGraphics.fillStyle(0xffdd00, 0.2);
-        this.gameGraphics.fillCircle(coin.x, coin.y, glowSize);
-        
-        // Coin body
-        this.gameGraphics.fillStyle(0xffdd00, 1);
-        this.gameGraphics.fillCircle(coin.x, coin.y, 6);
-        
-        // Coin border
-        this.gameGraphics.lineStyle(2, 0xffff00, 1);
-        this.gameGraphics.strokeCircleShape(new Phaser.Geom.Circle(coin.x, coin.y, 6));
-        
-        // Sparkle rays
-        const sparkleCount = 4;
-        const sparkleRadius = Math.sin(this.time.now * 0.025) * 4 + 10;
-        this.gameGraphics.lineStyle(1, 0xffffff, 0.6);
-        for (let i = 0; i < sparkleCount; i++) {
-          const angle = (i / sparkleCount) * Math.PI * 2;
-          const x1 = coin.x + Math.cos(angle) * 6;
-          const y1 = coin.y + Math.sin(angle) * 6;
-          const x2 = coin.x + Math.cos(angle) * sparkleRadius;
-          const y2 = coin.y + Math.sin(angle) * sparkleRadius;
-          this.gameGraphics.beginPath();
-          this.gameGraphics.moveTo(x1, y1);
-          this.gameGraphics.lineTo(x2, y2);
-          this.gameGraphics.strokePath();
-        }
-      }
-    });
-
-    // Draw goal with better animation
-    const flagWave = Math.sin(this.time.now * 0.018) * 3;
-    const flagBounce = Math.sin(this.time.now * 0.025) * 1;
-    
-    // Goal post
-    this.gameGraphics.fillStyle(0x0064ff, 1);
-    this.gameGraphics.fillRect(this.goal.x + 10, this.goal.y, 10, this.goal.height);
-    this.gameGraphics.lineStyle(2, 0x00aaff, 1);
-    this.gameGraphics.strokeRect(this.goal.x + 10, this.goal.y, 10, this.goal.height);
-    
-    // Animated flag
-    this.gameGraphics.fillStyle(0x00ff00, 1);
-    this.gameGraphics.fillRect(this.goal.x - 8 + flagWave, this.goal.y + 5 + flagBounce, 22, 17);
-    this.gameGraphics.lineStyle(2, 0xff66ff, 1);
-    this.gameGraphics.strokeRect(this.goal.x - 8 + flagWave, this.goal.y + 5 + flagBounce, 22, 17);
-    
-    // Flag shine
-    this.gameGraphics.lineStyle(1, 0xffffff, 0.5);
-    this.gameGraphics.beginPath();
-    this.gameGraphics.moveTo(this.goal.x - 6 + flagWave, this.goal.y + 8 + flagBounce);
-    this.gameGraphics.lineTo(this.goal.x + 12 + flagWave, this.goal.y + 8 + flagBounce);
-    this.gameGraphics.strokePath();
-
-    // Draw player with improved animation
-    const playerBob = Math.sin(this.time.now * 0.012) * 1.5;
-    const playerColor = this.player.invincible ? 0x0064ff : 0xff8800;
-    
-    // Player shadow
-    this.gameGraphics.fillStyle(0x000000, 0.2);
-    this.gameGraphics.fillRect(this.player.x, this.player.y + this.player.height + 2, this.player.width, 3);
-    
-    // Player body
-    this.gameGraphics.fillStyle(playerColor, 1);
-    this.gameGraphics.fillRect(this.player.x, this.player.y + playerBob, this.player.width, this.player.height);
-    
-    // Player outline
-    if (this.player.invincible) {
-      // Pulsing invincibility outline
-      const pulseOutline = Math.sin(this.time.now * 0.03) * 1 + 3;
-      this.gameGraphics.lineStyle(pulseOutline, 0x0064ff, 0.7);
-      this.gameGraphics.strokeRect(this.player.x - 3, this.player.y + playerBob - 3, this.player.width + 6, this.player.height + 6);
-    } else {
-      this.gameGraphics.lineStyle(2, 0xffaa00, 1);
-      this.gameGraphics.strokeRect(this.player.x - 1, this.player.y + playerBob - 1, this.player.width + 2, this.player.height + 2);
-    }
-    
-    // Eyes direction based on movement
-    this.gameGraphics.fillStyle(0xffff00, 1);
-    const eyeDir = this.player.velocityX > 0 ? 2 : (this.player.velocityX < 0 ? -2 : 0);
-    this.gameGraphics.fillRect(this.player.x + 4 + eyeDir, this.player.y + 5, 3, 3);
-    this.gameGraphics.fillRect(this.player.x + 14 + eyeDir, this.player.y + 5, 3, 3);
-    
-    // Pupils
-    this.gameGraphics.fillStyle(0x000000, 1);
-    this.gameGraphics.fillRect(this.player.x + 5 + eyeDir, this.player.y + 6, 2, 2);
-    this.gameGraphics.fillRect(this.player.x + 15 + eyeDir, this.player.y + 6, 2, 2);
-    
-    // Mouth (emotion based on state)
-    this.gameGraphics.lineStyle(2, 0xffff00, 1);
-    if (Math.abs(this.player.velocityY) > 8) {
-      // Surprised O mouth while jumping
-      this.gameGraphics.beginPath();
-      this.gameGraphics.arc(this.player.x + 11, this.player.y + 18, 2, 0, Math.PI * 2);
-      this.gameGraphics.strokePath();
-    } else if (this.player.isJumping) {
-      // Pursed mouth while jumping
-      this.gameGraphics.beginPath();
-      this.gameGraphics.moveTo(this.player.x + 7, this.player.y + 17);
-      this.gameGraphics.lineTo(this.player.x + 15, this.player.y + 17);
-      this.gameGraphics.strokePath();
-    } else {
-      // Happy smile
-      this.gameGraphics.beginPath();
-      this.gameGraphics.arc(this.player.x + 11, this.player.y + 18, 3, 0, Math.PI);
-      this.gameGraphics.strokePath();
-    }
-  }
-
-  showGameOver() {
-    this.gameGraphics.clear();
-    const overlay = this.add.rectangle(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y, CONSTANTS.WIDTH, CONSTANTS.HEIGHT, 0x000000).setAlpha(0.85);
-    
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 80, 'GAME OVER', {
-      fontSize: '48px',
-      fill: '#ff3333',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setStroke('#aa0000', 2);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 10, `Coins Collected: ${this.gameData.coins}`, {
-      fontSize: '24px',
-      fill: '#ffff00',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 30, `Score: ${this.gameData.score}`, {
-      fontSize: '20px',
-      fill: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 100, 'Press ESC to return to menu', {
-      fontSize: '16px',
-      fill: '#0064ff',
-      fontFamily: 'Arial',
-      fontStyle: 'italic'
-    }).setOrigin(0.5);
-  }
-
-  showWin() {
-    this.gameGraphics.clear();
-    const overlay = this.add.rectangle(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y, CONSTANTS.WIDTH, CONSTANTS.HEIGHT, 0x000000).setAlpha(0.85);
-    
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 80, 'LEVEL COMPLETE!', {
-      fontSize: '44px',
-      fill: '#00ff00',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setStroke('#00aa00', 2);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 10, `Coins Collected: ${this.gameData.coins}/16`, {
-      fontSize: '26px',
-      fill: '#ffff00',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 35, `Total Score: ${this.gameData.score}`, {
-      fontSize: '22px',
-      fill: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    let bonusText = '';
-    if (this.gameData.coins === 16) {
-      bonusText = 'PERFECT COLLECTION! +100 BONUS!';
-      this.gameData.score += 100;
-    } else if (this.gameData.coins >= 14) {
-      bonusText = 'GREAT JOB! +50 BONUS!';
-      this.gameData.score += 50;
-    }
-    
-    if (bonusText) {
-      this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 75, bonusText, {
-        fontSize: '20px',
-        fill: '#ffaa00',
-        fontFamily: 'Arial',
-        fontStyle: 'bold'
-      }).setOrigin(0.5);
-    }
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 120, 'Press ESC to return to menu', {
-      fontSize: '16px',
-      fill: '#0064ff',
-      fontFamily: 'Arial',
-      fontStyle: 'italic'
-    }).setOrigin(0.5);
-  }
-
-  nextLevel() {
-    // Save upgrades and coins to profile
-    this.profile.platformerUpgrades = this.gameData.upgrades;
-    this.profile.platformerCoins = this.gameData.totalCoins;
-    this.profile.save();
-    
-    // Reset coins for new level
-    this.gameData.coins = 0;
-    this.scoreText.setText(`Coins: ${this.gameData.coins} 💰`);
-    this.levelText.setText(`LEVEL ${this.gameData.level}/${this.gameData.maxLevel}`);
-    
-    // Generate new level
-    this.generateRandomLevel(this.gameData.level);
-    
-    // Reinitialize player on first platform of new level
-    this.initializePlayer();
-    
-    // Reset game state for new level
-    this.gameData.won = false;
-    this.displayUpgradeStatus();
-  }
-
-  showFinalVictory() {
-    this.gameGraphics.clear();
-    const overlay = this.add.rectangle(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y, CONSTANTS.WIDTH, CONSTANTS.HEIGHT, 0x000000).setAlpha(0.9);
-    
-    // Main title
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 120, '🎉 YOU WIN! 🎉', {
-      fontSize: '48px',
-      fill: '#ffff00',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setStroke('#ffaa00', 3);
-
-    // Subtitle
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 50, 'ALL 30 LEVELS COMPLETED!', {
-      fontSize: '32px',
-      fill: '#00ff00',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setStroke('#00aa00', 2);
-
-    // Stats
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 10, `Final Score: ${this.gameData.score}`, {
-      fontSize: '26px',
-      fill: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 55, `Total Coins: ${this.gameData.coins}`, {
-      fontSize: '22px',
-      fill: '#ffff00',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Celebration message
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 105, '★ YOU ARE THE PLATFORMING CHAMPION! ★', {
-      fontSize: '18px',
-      fill: '#ffaa00',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 150, 'Press ESC to return to menu', {
-      fontSize: '16px',
-      fill: '#0064ff',
-      fontFamily: 'Arial',
-      fontStyle: 'italic'
-    }).setOrigin(0.5);
-  }
-
-  showUpgradesMenu() {
-    this.gameGraphics.clear();
-    const overlay = this.add.rectangle(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y, CONSTANTS.WIDTH, CONSTANTS.HEIGHT, 0x000000).setAlpha(0.92);
-    
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 110, 'UPGRADES SHOP', {
-      fontSize: '40px',
-      fill: '#00ff88',
-      fontStyle: 'bold',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setStroke('#00cc44', 2);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 60, `💰 Available Coins: ${this.gameData.totalCoins}`, {
-      fontSize: '20px',
-      fill: '#ffff00',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-
-    // Jump Upgrade
-    const jumpPrice = 50;
-    const jumpLevel = `⬆️ JUMP BOOST (Level ${this.gameData.upgrades.jumpBoost})`;
-    const jumpColor = this.gameData.totalCoins >= jumpPrice ? '#00ff00' : '#ff3333';
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y - 10, `${jumpLevel} - Cost: ${jumpPrice}💰`, {
-      fontSize: '16px',
-      fill: jumpColor,
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 10, 'Press 1 to buy | Effect: +0.5 jump height', {
-      fontSize: '13px',
-      fill: '#aaaaaa',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Speed Upgrade
-    const speedPrice = 40;
-    const speedLevel = `⚡ SPEED BOOST (Level ${this.gameData.upgrades.speedBoost})`;
-    const speedColor = this.gameData.totalCoins >= speedPrice ? '#00ff00' : '#ff3333';
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 45, `${speedLevel} - Cost: ${speedPrice}💰`, {
-      fontSize: '16px',
-      fill: speedColor,
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 65, 'Press 2 to buy | Effect: +0.2 movement speed', {
-      fontSize: '13px',
-      fill: '#aaaaaa',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Shield Upgrade
-    const shieldPrice = 60;
-    const shieldLevel = `🛡️ SHIELD BOOST (Level ${this.gameData.upgrades.shieldBoost})`;
-    const shieldColor = this.gameData.totalCoins >= shieldPrice ? '#00ff00' : '#ff3333';
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 100, `${shieldLevel} - Cost: ${shieldPrice}💰`, {
-      fontSize: '16px',
-      fill: shieldColor,
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 120, 'Press 3 to buy | Effect: Lasts longer when hit', {
-      fontSize: '13px',
-      fill: '#aaaaaa',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.add.text(CONSTANTS.CENTER_X, CONSTANTS.CENTER_Y + 160, 'Press U again or ESC to close', {
-      fontSize: '14px',
-      fill: '#0064ff',
-      fontFamily: 'Arial',
-      fontStyle: 'italic'
-    }).setOrigin(0.5);
-
-    // Handle upgrade purchases
-    if (this.input.keyboard.keys[Phaser.Input.Keyboard.KeyCodes.ONE].isDown) {
-      if (this.gameData.totalCoins >= 50) {
-        this.gameData.totalCoins -= 50;
-        this.gameData.upgrades.jumpBoost++;
-        this.displayUpgradeStatus();
-      }
-    }
-    if (this.input.keyboard.keys[Phaser.Input.Keyboard.KeyCodes.TWO].isDown) {
-      if (this.gameData.totalCoins >= 40) {
-        this.gameData.totalCoins -= 40;
-        this.gameData.upgrades.speedBoost++;
-        this.displayUpgradeStatus();
-      }
-    }
-    if (this.input.keyboard.keys[Phaser.Input.Keyboard.KeyCodes.THREE].isDown) {
-      if (this.gameData.totalCoins >= 60) {
-        this.gameData.totalCoins -= 60;
-        this.gameData.upgrades.shieldBoost++;
-        this.displayUpgradeStatus();
-      }
-    }
-  }
-}
-
-// ============================================================================
 // PHASER CONFIG & INIT
 // ============================================================================
 
@@ -2726,7 +1806,7 @@ const config = {
     touch: { target: window },
     mouse: { target: window }
   },
-  scene: [BootScene, MainMenuScene, ModeSelectScene, GameScene, PauseScene, GameOverScene, StatsScene, SettingsScene, PlatformerScene],
+  scene: [BootScene, MainMenuScene, ModeSelectScene, GameScene, PauseScene, GameOverScene, StatsScene, SettingsScene],
   backgroundColor: '#0a0a0a'
 };
 

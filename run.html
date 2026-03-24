@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDK Game - Local Run</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+        #game {
+            border: 2px solid #0064ff;
+            box-shadow: 0 0 20px rgba(0, 100, 255, 0.5);
+        }
+        .glow-off {
+            box-shadow: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="game"></div>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <script>
+        // Load the game script
+        fetch('src/game.js')
+            .then(response => response.text())
+            .then(code => {
+                eval(code);
+            })
+            .catch(error => {
+                console.error('Error loading game:', error);
+                document.body.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Error loading game. Please make sure src/game.js exists.</div>';
+            });
+    </script>
+</body>
+</html>
